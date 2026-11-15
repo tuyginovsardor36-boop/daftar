@@ -1,0 +1,219 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-hand: 'Caveat', cursive;
+    --font-serif: 'Lora', Georgia, serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.font-handwriting {
+  font-family: var(--font-hand);
+}
+
+.font-editorial {
+  font-family: var(--font-serif);
+}
+
+.font-code {
+  font-family: var(--font-mono);
+}
+
+/* Subtle drafting desk textures */
+.desk-linen {
+  background-color: #E7E2D8;
+  background-image:
+    radial-gradient(rgba(24, 24, 27, 0.05) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.desk-slate {
+  background-color: #D8DDE3;
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.desk-walnut {
+  background-color: #211D19;
+  background-image:
+    radial-gradient(rgba(255, 248, 235, 0.04) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* Clean custom scrollbars */
+.studio-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.studio-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-scroll::-webkit-scrollbar-thumb {
+  background: rgba(24, 24, 27, 0.16);
+  border-radius: 3px;
+}
+
+.studio-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(24, 24, 27, 0.28);
+}
+
+@keyframes shutterFlash {
+  0% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-shutter {
+  animation: shutterFlash 380ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Book / Notebook Page Turn Animations */
+.book-stage-3d {
+  perspective: 2200px;
+  transform-style: preserve-3d;
+}
+
+@keyframes pageEnterRightToLeft {
+  0% {
+    opacity: 0.65;
+    transform: translateX(34px) rotateY(-11deg) scale(0.985);
+  }
+  55% {
+    opacity: 0.96;
+    transform: translateX(6px) rotateY(-2deg) scale(0.996);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes pageEnterLeftToRight {
+  0% {
+    opacity: 0.65;
+    transform: translateX(-34px) rotateY(11deg) scale(0.985);
+  }
+  55% {
+    opacity: 0.96;
+    transform: translateX(-6px) rotateY(2deg) scale(0.996);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotateY(0deg) scale(1);
+  }
+}
+
+/* Turning paper leaf overlay: swings from Right -> Left across the spine */
+@keyframes leafFlipRtl {
+  0% {
+    opacity: 0.94;
+    transform: rotateY(0deg);
+    box-shadow: -8px 12px 26px rgba(24, 24, 27, 0.16);
+  }
+  45% {
+    opacity: 0.92;
+    transform: rotateY(-88deg);
+    box-shadow: -24px 18px 42px rgba(24, 24, 27, 0.28);
+  }
+  100% {
+    opacity: 0;
+    transform: rotateY(-175deg);
+    box-shadow: 8px 10px 24px rgba(24, 24, 27, 0.08);
+  }
+}
+
+/* Turning paper leaf overlay: swings from Left -> Right across the spine */
+@keyframes leafFlipLtr {
+  0% {
+    opacity: 0.94;
+    transform: rotateY(0deg);
+    box-shadow: 8px 12px 26px rgba(24, 24, 27, 0.16);
+  }
+  45% {
+    opacity: 0.92;
+    transform: rotateY(88deg);
+    box-shadow: 24px 18px 42px rgba(24, 24, 27, 0.28);
+  }
+  100% {
+    opacity: 0;
+    transform: rotateY(175deg);
+    box-shadow: -8px 10px 24px rgba(24, 24, 27, 0.08);
+  }
+}
+
+@keyframes spineFoldSweepRtl {
+  0% {
+    opacity: 0;
+    transform: translateX(60%);
+  }
+  35% {
+    opacity: 0.24;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-65%);
+  }
+}
+
+@keyframes spineFoldSweepLtr {
+  0% {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+  35% {
+    opacity: 0.24;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(65%);
+  }
+}
+
+.animate-page-rtl {
+  transform-origin: left center;
+  animation: pageEnterRightToLeft 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-page-ltr {
+  transform-origin: right center;
+  animation: pageEnterLeftToRight 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-leaf-rtl {
+  transform-origin: left center;
+  backface-visibility: hidden;
+  animation: leafFlipRtl 540ms cubic-bezier(0.32, 0.05, 0.25, 1) forwards;
+}
+
+.animate-leaf-ltr {
+  transform-origin: right center;
+  backface-visibility: hidden;
+  animation: leafFlipLtr 540ms cubic-bezier(0.32, 0.05, 0.25, 1) forwards;
+}
+
+.animate-fold-sweep-rtl {
+  animation: spineFoldSweepRtl 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-fold-sweep-ltr {
+  animation: spineFoldSweepLtr 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+

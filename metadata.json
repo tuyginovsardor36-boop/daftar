@@ -1,0 +1,6 @@
+{
+  "name": "Daftar Canvas",
+  "description": "Real ko'rinishdagi interaktiv daftar canvas va screenshot orqali PDF eksport studio",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
