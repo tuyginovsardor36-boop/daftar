@@ -91,8 +91,8 @@ export function createInitialNotebook(): NotebookDoc {
         width: 22,
         opacity: 0.42,
         points: [
-          { x: 112, y: 136 },
-          { x: 428, y: 136 },
+          { x: 58, y: 136 },
+          { x: 374, y: 136 },
         ],
       },
       // Neat hand-drawn underline beneath title text
@@ -103,10 +103,10 @@ export function createInitialNotebook(): NotebookDoc {
         width: 2.2,
         opacity: 1,
         points: [
-          { x: 112, y: 152 },
-          { x: 240, y: 151 },
-          { x: 380, y: 153 },
-          { x: 432, y: 151 },
+          { x: 58, y: 152 },
+          { x: 186, y: 151 },
+          { x: 326, y: 153 },
+          { x: 378, y: 151 },
         ],
       },
       // Diagram box on right side (clean sketch)
@@ -117,8 +117,8 @@ export function createInitialNotebook(): NotebookDoc {
         width: 2,
         opacity: 0.9,
         points: [
-          { x: 120, y: 492 },
-          { x: 290, y: 582 },
+          { x: 66, y: 492 },
+          { x: 236, y: 582 },
         ],
       },
       {
@@ -128,8 +128,8 @@ export function createInitialNotebook(): NotebookDoc {
         width: 2.2,
         opacity: 1,
         points: [
-          { x: 300, y: 537 },
-          { x: 392, y: 537 },
+          { x: 246, y: 537 },
+          { x: 334, y: 537 },
         ],
       },
       {
@@ -139,8 +139,8 @@ export function createInitialNotebook(): NotebookDoc {
         width: 2,
         opacity: 0.9,
         points: [
-          { x: 404, y: 492 },
-          { x: 584, y: 582 },
+          { x: 346, y: 492 },
+          { x: 522, y: 582 },
         ],
       },
       {
@@ -150,8 +150,8 @@ export function createInitialNotebook(): NotebookDoc {
         width: 2.2,
         opacity: 1,
         points: [
-          { x: 594, y: 537 },
-          { x: 668, y: 537 },
+          { x: 532, y: 537 },
+          { x: 598, y: 537 },
         ],
       },
       // Small hand-drawn circle emphasis
@@ -162,17 +162,17 @@ export function createInitialNotebook(): NotebookDoc {
         width: 2,
         opacity: 0.85,
         points: [
-          { x: 676, y: 504 },
-          { x: 744, y: 570 },
+          { x: 608, y: 504 },
+          { x: 676, y: 570 },
         ],
       },
     ],
     textBlocks: [
       {
         id: 'tb_1',
-        x: 110,
+        x: 56,
         y: 116,
-        width: 580,
+        width: 610,
         content: 'Asosiy g‘oya: Realistik daftar va tezkor PDF eksport',
         font: 'handwriting',
         fontSize: 28,
@@ -180,9 +180,9 @@ export function createInitialNotebook(): NotebookDoc {
       },
       {
         id: 'tb_2',
-        x: 110,
+        x: 56,
         y: 178,
-        width: 620,
+        width: 630,
         content:
           '1. Qog‘oz ustida erkin qalam, ruchka va marker bilan chizish hamda yozish.\n2. Chiziqli, katak, nuqtali yoki oq qog‘oz turlarini tanlash.\n3. Sahifani yuqori aniqlikda screenshot qilib, to‘g‘ridan-to‘g‘ri PDF ga o‘tkazish.',
         font: 'handwriting',
@@ -191,7 +191,7 @@ export function createInitialNotebook(): NotebookDoc {
       },
       {
         id: 'tb_3',
-        x: 136,
+        x: 82,
         y: 520,
         width: 140,
         content: 'Daftar Canvas',
@@ -201,7 +201,7 @@ export function createInitialNotebook(): NotebookDoc {
       },
       {
         id: 'tb_4',
-        x: 424,
+        x: 364,
         y: 520,
         width: 148,
         content: 'HD Screenshot',
@@ -211,9 +211,9 @@ export function createInitialNotebook(): NotebookDoc {
       },
       {
         id: 'tb_5',
-        x: 688,
+        x: 620,
         y: 522,
-        width: 60,
+        width: 56,
         content: 'PDF',
         font: 'mono',
         fontSize: 16,
@@ -221,9 +221,9 @@ export function createInitialNotebook(): NotebookDoc {
       },
       {
         id: 'tb_6',
-        x: 110,
+        x: 56,
         y: 626,
-        width: 610,
+        width: 630,
         content:
           'Eslatma: Yuqoridagi “PDF ga eksport” tugmasini bosing — tizim daftar sahifasini screenshot qiladi va darhol PDF faylga ko‘chiradi.',
         font: 'serif',

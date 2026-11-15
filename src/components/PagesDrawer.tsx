@@ -19,6 +19,7 @@ interface PagesDrawerProps {
   cover: CoverData;
   capacity: NotebookCapacity;
   viewLayout: ViewLayout;
+  readOnly?: boolean;
   onSelectCover: () => void;
   onToggleHasCover: () => void;
   onSelectPage: (index: number) => void;
@@ -36,6 +37,7 @@ export const PagesDrawer: React.FC<PagesDrawerProps> = ({
   cover,
   capacity,
   viewLayout,
+  readOnly = false,
   onSelectCover,
   onToggleHasCover,
   onSelectPage,
@@ -51,14 +53,16 @@ export const PagesDrawer: React.FC<PagesDrawerProps> = ({
     <aside className="w-56 shrink-0 bg-[#F9F8F5] border-l border-zinc-900/10 flex flex-col h-full">
       <div className="px-4 py-3 border-b border-zinc-900/10 flex items-center justify-between">
         <span className="text-xs font-semibold text-zinc-900">Sahifalar ({pages.length})</span>
-        <button
-          type="button"
-          onClick={onAddPage}
-          className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-800 whitespace-nowrap cursor-pointer"
-        >
-          <FilePlus2 className="w-3.5 h-3.5" />
-          <span>Yangi</span>
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={onAddPage}
+            className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-800 whitespace-nowrap cursor-pointer"
+          >
+            <FilePlus2 className="w-3.5 h-3.5" />
+            <span>Yangi</span>
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto studio-scroll p-3 space-y-2.5">
@@ -102,20 +106,22 @@ export const PagesDrawer: React.FC<PagesDrawerProps> = ({
                 <BookMarked className="w-3 h-3 text-blue-700" />
                 <span>Titul muqova</span>
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleHasCover();
-                }}
-                title="Titul varoqni olib tashlash"
-                className="p-1 text-zinc-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleHasCover();
+                  }}
+                  title="Titul varoqni olib tashlash"
+                  className="p-1 text-zinc-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
-        ) : (
+        ) : !readOnly ? (
           <button
             type="button"
             onClick={onToggleHasCover}
@@ -124,7 +130,7 @@ export const PagesDrawer: React.FC<PagesDrawerProps> = ({
             <BookMarked className="w-3.5 h-3.5" />
             <span>+ Titul yuza varoq qo‘shish</span>
           </button>
-        )}
+        ) : null}
 
         {pages.map((page, index) => {
           const isActive =
@@ -179,61 +185,65 @@ export const PagesDrawer: React.FC<PagesDrawerProps> = ({
               </div>
 
               {/* Clean unboxed metadata row with always-accessible 1-by-1 delete */}
-              <div className="flex items-center justify-between text-[11px] text-zinc-600">
+                <div className="flex items-center justify-between text-[11px] text-zinc-600">
                 <span className="font-code tabular-nums font-medium text-zinc-800">
                   {String(index + 1).padStart(2, '0')}-bet
                 </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDuplicatePage(index);
-                    }}
-                    title="Nusxalash"
-                    className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors cursor-pointer"
-                  >
-                    <CopyPlus className="w-3.5 h-3.5" />
-                  </button>
-                  {pages.length > 1 && (
+                {!readOnly && (
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeletePage(index);
+                        onDuplicatePage(index);
                       }}
-                      title={`${index + 1}-betni o‘chirish`}
-                      className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                      title="Nusxalash"
+                      className="p-1 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <CopyPlus className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                </div>
+                    {pages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeletePage(index);
+                        }}
+                        title={`${index + 1}-betni o‘chirish`}
+                        className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="p-3 border-t border-zinc-900/10 space-y-2">
-        <button
-          type="button"
-          onClick={onAddPage}
-          className="w-full py-2 px-3 rounded-lg border border-dashed border-zinc-300 text-xs font-medium text-zinc-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50/30 transition-colors cursor-pointer"
-        >
-          + Yangi sahifa qo‘shish
-        </button>
-        {pages.length > 1 && !isViewingCover && (
+      {!readOnly && (
+        <div className="p-3 border-t border-zinc-900/10 space-y-2">
           <button
             type="button"
-            onClick={() => onDeletePage(activePageIndex)}
-            className="w-full py-1.5 px-3 rounded-lg border border-red-200/80 bg-red-50/60 hover:bg-red-100/80 text-xs font-medium text-red-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            onClick={onAddPage}
+            className="w-full py-2 px-3 rounded-lg border border-dashed border-zinc-300 text-xs font-medium text-zinc-700 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50/30 transition-colors cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>{activePageIndex + 1}-betni o‘chirish</span>
+            + Yangi sahifa qo‘shish
           </button>
-        )}
-      </div>
+          {pages.length > 1 && !isViewingCover && (
+            <button
+              type="button"
+              onClick={() => onDeletePage(activePageIndex)}
+              className="w-full py-1.5 px-3 rounded-lg border border-red-200/80 bg-red-50/60 hover:bg-red-100/80 text-xs font-medium text-red-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{activePageIndex + 1}-betni o‘chirish</span>
+            </button>
+          )}
+        </div>
+      )}
     </aside>
   );
 };

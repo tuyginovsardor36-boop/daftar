@@ -42,6 +42,7 @@ interface CoverSheetProps {
   activeWidth: number;
   zoom: number;
   isFlashing: boolean;
+  readOnly?: boolean;
   onUpdateCover: (patch: Partial<CoverData>) => void;
   onAddCoverStroke: (stroke: Stroke) => void;
 }
@@ -154,6 +155,7 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
   activeWidth,
   zoom,
   isFlashing,
+  readOnly = false,
   onUpdateCover,
   onAddCoverStroke,
 }) => {
@@ -268,6 +270,7 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (readOnly) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (!isDrawableTool(activeTool)) return;
 
@@ -357,7 +360,8 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-4xl">
-      {/* Compact Quick Bar + Toggle Full Titul Designer */}
+      {/* Compact Quick Bar + Toggle Full Titul Designer (hidden in View Mode) */}
+      {!readOnly && (
       <div className="w-full bg-white/95 border border-zinc-900/10 rounded-xl px-4 py-2.5 shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -584,6 +588,7 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* Physical Cover Sheet */}
       <div
@@ -642,9 +647,13 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
           <input
             type="text"
             value={cover.heading}
+            readOnly={readOnly}
+            tabIndex={readOnly ? -1 : undefined}
             onChange={(e) => onUpdateCover({ heading: e.target.value })}
-            placeholder="DAFTAR"
-            className={`absolute z-20 bg-transparent border-0 outline-none text-center tracking-wide focus:bg-black/10 rounded px-2 transition-colors ${headingFontClass}`}
+            placeholder={readOnly ? '' : 'DAFTAR'}
+            className={`absolute z-20 bg-transparent border-0 outline-none text-center tracking-wide rounded px-2 transition-colors ${
+              readOnly ? 'pointer-events-none select-text' : 'focus:bg-black/10'
+            } ${headingFontClass}`}
             style={{
               left: 112,
               top: geom.headingY - 12,
@@ -655,9 +664,13 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
           <input
             type="text"
             value={cover.subtitle ?? ''}
+            readOnly={readOnly}
+            tabIndex={readOnly ? -1 : undefined}
             onChange={(e) => onUpdateCover({ subtitle: e.target.value })}
-            placeholder="Qo‘shimcha sarlavha yoki izoh (ixtiyoriy)..."
-            className="absolute z-20 bg-transparent border-0 outline-none text-center text-[15px] font-medium focus:bg-black/10 rounded px-2 transition-colors placeholder:opacity-55"
+            placeholder={readOnly ? '' : 'Qo‘shimcha sarlavha yoki izoh (ixtiyoriy)...'}
+            className={`absolute z-20 bg-transparent border-0 outline-none text-center text-[15px] font-medium rounded px-2 transition-colors placeholder:opacity-55 ${
+              readOnly ? 'pointer-events-none' : 'focus:bg-black/10'
+            }`}
             style={{
               left: 132,
               top: geom.subtitleY,
@@ -674,9 +687,9 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
             onPointerUp={finishStroke}
             onPointerCancel={finishStroke}
             className={`absolute inset-0 w-full h-full z-10 ${
-              isDrawableTool(activeTool) ? 'cursor-crosshair' : 'cursor-default'
+              !readOnly && isDrawableTool(activeTool) ? 'cursor-crosshair' : 'cursor-default'
             }`}
-            style={{ touchAction: 'none' }}
+            style={{ touchAction: readOnly ? 'auto' : 'none' }}
           />
 
           {/* Editable Titul Label Fields (aligned 1:1 with getCoverLayoutGeometry) */}
@@ -685,9 +698,13 @@ export const CoverSheet: React.FC<CoverSheetProps> = ({
               key={field.key}
               type="text"
               value={String(cover[field.key] ?? '')}
+              readOnly={readOnly}
+              tabIndex={readOnly ? -1 : undefined}
               onChange={(e) => onUpdateCover({ [field.key]: e.target.value })}
-              placeholder={field.placeholder}
-              className={`absolute z-20 bg-transparent border-0 outline-none text-zinc-900 placeholder:text-zinc-400/70 focus:bg-white/65 rounded px-1 transition-colors ${inputFontClass}`}
+              placeholder={readOnly ? '' : field.placeholder}
+              className={`absolute z-20 bg-transparent border-0 outline-none text-zinc-900 placeholder:text-zinc-400/70 rounded px-1 transition-colors ${
+                readOnly ? 'pointer-events-none' : 'focus:bg-white/65'
+              } ${inputFontClass}`}
               style={{
                 left: field.x + 2,
                 top: field.y - 24,

@@ -12,6 +12,7 @@ import {
   PAGE_WIDTH,
   PaperStyle,
   PasteInspectionMeta,
+  SheetSide,
   TextFont,
 } from '../types/notebook';
 import { renderCustomHandwritingText } from './notebookRenderer';
@@ -77,7 +78,8 @@ export function analyzePasteHeuristics(text: string, isPasted = true): PasteInsp
 export function getPaperTextGeometry(
   paperStyle: PaperStyle,
   gridRowSpan: GridRowSpan,
-  font: TextFont
+  font: TextFont,
+  sheetSide: SheetSide = 'right'
 ): {
   leftX: number;
   rightLimit: number;
@@ -117,8 +119,8 @@ export function getPaperTextGeometry(
   }
 
   if (paperStyle === 'lined') {
-    const leftX = MARGIN_X + 12; // 104
-    const rightLimit = PAGE_WIDTH - 34; // 760
+    const leftX = sheetSide === 'left' ? MARGIN_X + 12 : 56;
+    const rightLimit = sheetSide === 'left' ? PAGE_WIDTH - 34 : PAGE_WIDTH - MARGIN_X - 12;
     return {
       leftX,
       rightLimit,

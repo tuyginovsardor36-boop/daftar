@@ -214,11 +214,15 @@ const AutoSizedTextarea: React.FC<{
     <textarea
       ref={ref}
       value={value}
-      autoFocus={autoFocus}
+      readOnly={!interactive}
+      tabIndex={!interactive ? -1 : undefined}
+      autoFocus={autoFocus && interactive}
       rows={1}
-      onFocus={onFocus}
+      onFocus={() => {
+        if (interactive) onFocus();
+      }}
       onPaste={(e) => {
-        if (!onPasteText) return;
+        if (!interactive || !onPasteText) return;
         const raw = e.clipboardData?.getData('text/plain');
         if (!raw) return;
         const cleaned = normalizePastedText(raw);
@@ -229,12 +233,14 @@ const AutoSizedTextarea: React.FC<{
           e.preventDefault();
         }
       }}
-      onChange={(e) => onChangeValue(e.target.value)}
-      placeholder="Bu yerga yozing yoki nusxalangan matnni qo‘ying..."
+      onChange={(e) => {
+        if (interactive) onChangeValue(e.target.value);
+      }}
+      placeholder={interactive ? 'Bu yerga yozing yoki nusxalangan matnni qo‘ying...' : ''}
       className={`w-full resize-none bg-transparent outline-none rounded transition-colors ${
         isRuled ? 'overflow-visible' : 'overflow-hidden'
-      } ${
-        isSelected
+      } ${!interactive ? 'pointer-events-none' : ''} ${
+        isSelected && interactive
           ? 'ring-1 ring-blue-500/30 bg-white/10'
           : interactive
             ? 'hover:bg-white/10'
@@ -271,6 +277,7 @@ interface NotebookSheetProps {
   selectedTextId: string | null;
   zoom: number;
   isFlashing: boolean;
+  readOnly?: boolean;
   capacity?: NotebookCapacity;
   suppressStackAndBinding?: boolean;
   onActivateSheet?: () => void;
@@ -310,6 +317,7 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
   selectedTextId,
   zoom,
   isFlashing,
+  readOnly = false,
   capacity = 12,
   suppressStackAndBinding = false,
   onActivateSheet,
@@ -459,6 +467,7 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
   };
 
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (readOnly) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
     const pt = toSheetCoords(e.clientX, e.clientY);
@@ -708,8 +717,9 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
 
   const tonePalette = PAPER_TONE_COLORS[paperTone];
 
-  const cursorClass =
-    activeTool === 'text' || activeTool === 'frame_box'
+  const cursorClass = readOnly
+    ? 'cursor-default'
+    : activeTool === 'text' || activeTool === 'frame_box'
       ? 'cursor-text'
       : activeTool === 'select'
         ? 'cursor-default'
@@ -783,9 +793,13 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
         <input
           type="text"
           value={page.title}
+          readOnly={readOnly}
+          tabIndex={readOnly ? -1 : undefined}
           onChange={(e) => onUpdatePageMeta({ title: e.target.value })}
-          placeholder="Sahifa sarlavhasi..."
-          className="absolute z-10 bg-transparent border-0 outline-none font-editorial font-semibold text-[16px] text-zinc-900/85 placeholder:text-zinc-400/70 focus:bg-white/40 rounded px-1 -mx-1 transition-colors"
+          placeholder={readOnly ? '' : 'Sahifa sarlavhasi...'}
+          className={`absolute z-10 bg-transparent border-0 outline-none font-editorial font-semibold text-[16px] text-zinc-900/85 placeholder:text-zinc-400/70 rounded px-1 -mx-1 transition-colors ${
+            readOnly ? 'pointer-events-none' : 'focus:bg-white/40'
+          }`}
           style={{
             left: MARGIN_X + 14,
             top: HEADER_HEIGHT - 36,
@@ -795,9 +809,13 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
         <input
           type="text"
           value={page.dateLabel}
+          readOnly={readOnly}
+          tabIndex={readOnly ? -1 : undefined}
           onChange={(e) => onUpdatePageMeta({ dateLabel: e.target.value })}
-          placeholder="Sana"
-          className="absolute z-10 bg-transparent border-0 outline-none font-code font-medium text-[12px] text-zinc-900/55 text-right placeholder:text-zinc-400/60 focus:bg-white/40 rounded px-1 transition-colors"
+          placeholder={readOnly ? '' : 'Sana'}
+          className={`absolute z-10 bg-transparent border-0 outline-none font-code font-medium text-[12px] text-zinc-900/55 text-right placeholder:text-zinc-400/60 rounded px-1 transition-colors ${
+            readOnly ? 'pointer-events-none' : 'focus:bg-white/40'
+          }`}
           style={{
             right: 30,
             top: HEADER_HEIGHT - 32,
@@ -813,17 +831,17 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
           onPointerUp={finishStroke}
           onPointerCancel={finishStroke}
           className={`absolute inset-0 w-full h-full z-10 ${cursorClass}`}
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: readOnly ? 'auto' : 'none' }}
         />
 
         {/* AI Draw Target Selection Overlay */}
-        {activeTool === 'ai_draw' && !aiDragBox && (
+        {!readOnly && activeTool === 'ai_draw' && !aiDragBox && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-700/90 text-white text-[11px] font-medium shadow-md whitespace-nowrap">
             <Wand2 className="w-3 h-3" />
             <span>Chizma kerakli joyga ramka torting yoki bosing</span>
           </div>
         )}
-        {aiDragBox && (
+        {!readOnly && aiDragBox && (
           <div
             className="absolute z-30 pointer-events-none border-2 border-dashed border-blue-600 bg-blue-500/10 rounded-lg flex items-center justify-center"
             style={{
@@ -841,12 +859,12 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
 
         {/* Layer 2: Pasted Sticker Images */}
         {page.images.map((img) => {
-          const isSelected = selectedImageId === img.id;
+          const isSelected = !readOnly && selectedImageId === img.id;
           return (
             <div
               key={img.id}
               onPointerDown={(e) => {
-                if (activeTool !== 'select' && activeTool !== 'text') return;
+                if (readOnly || (activeTool !== 'select' && activeTool !== 'text')) return;
                 e.stopPropagation();
                 setSelectedImageId(img.id);
                 onSelectTextId(null);
@@ -954,9 +972,11 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
 
         {/* Layer 2: Interactive Typed & Framed Text Blocks */}
         {page.textBlocks.map((block) => {
-          const isSelected = selectedTextId === block.id;
-          const isEditing = editingTextId === block.id;
-          const interactive = activeTool === 'select' || activeTool === 'text' || activeTool === 'frame_box';
+          const isSelected = !readOnly && selectedTextId === block.id;
+          const isEditing = !readOnly && editingTextId === block.id;
+          const interactive =
+            !readOnly &&
+            (activeTool === 'select' || activeTool === 'text' || activeTool === 'frame_box');
           const hasFrame = Boolean(block.frameStyle && block.frameStyle !== 'none');
           const frameStyle = block.frameStyle ?? 'none';
           const framePreset = frameStyle !== 'none' ? FRAME_STYLE_PRESETS[frameStyle] : null;
@@ -1246,8 +1266,11 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
                   />
                   <textarea
                     value={block.content}
-                    autoFocus={isEditing}
+                    readOnly={!interactive}
+                    tabIndex={!interactive ? -1 : undefined}
+                    autoFocus={isEditing && interactive}
                     onFocus={() => {
+                      if (!interactive) return;
                       onSelectTextId(block.id);
                       setEditingTextId(block.id);
                     }}
@@ -1255,7 +1278,7 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
                       setEditingTextId((prev) => (prev === block.id ? null : prev));
                     }}
                     onPaste={(e) => {
-                      if (!onSmartPasteText) return;
+                      if (!interactive || !onSmartPasteText) return;
                       const raw = e.clipboardData?.getData('text/plain');
                       if (!raw) return;
                       const cleaned = normalizePastedText(raw);
@@ -1265,10 +1288,12 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
                       if (handled) e.preventDefault();
                     }}
                     onChange={(e) => {
-                      onUpdateTextBlock(block.id, { content: e.target.value });
+                      if (interactive) onUpdateTextBlock(block.id, { content: e.target.value });
                     }}
                     aria-label="Mening yozuvim matni"
-                    className="absolute inset-0 w-full h-full resize-none opacity-0 cursor-text"
+                    className={`absolute inset-0 w-full h-full resize-none opacity-0 ${
+                      interactive ? 'cursor-text' : 'pointer-events-none'
+                    }`}
                   />
                 </div>
               ) : hasFrame && framePreset ? (
@@ -1314,9 +1339,15 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
                       <input
                         type="text"
                         value={block.frameTitle ?? framePreset.defaultTitle}
-                        onChange={(e) => onUpdateTextBlock(block.id, { frameTitle: e.target.value })}
-                        placeholder={framePreset.defaultTitle}
+                        readOnly={!interactive}
+                        tabIndex={!interactive ? -1 : undefined}
+                        onChange={(e) => {
+                          if (interactive) onUpdateTextBlock(block.id, { frameTitle: e.target.value });
+                        }}
+                        placeholder={interactive ? framePreset.defaultTitle : ''}
                         className={`bg-transparent border-0 outline-none text-[11px] w-full ${
+                          !interactive ? 'pointer-events-none' : ''
+                        } ${
                           isCodeFrame
                             ? 'font-code font-semibold text-slate-50 placeholder:text-slate-400'
                             : 'font-sans font-bold uppercase tracking-wide placeholder:opacity-60'

@@ -2,10 +2,11 @@ export const PAGE_WIDTH = 794;
 export const PAGE_HEIGHT = 1123;
 export const LINE_SPACING = 32;
 export const HEADER_HEIGHT = 88;
-export const MARGIN_X = 92;
+export const MARGIN_X = 84;
 export const GRID_SIZE = 24;
 export const GRID_START_X = 48;
 export const GRID_START_Y = HEADER_HEIGHT;
+export type SheetSide = 'left' | 'right';
 
 export type ToolType =
   | 'pen'
@@ -52,7 +53,90 @@ export type CoverLabelShape = 'rect' | 'rounded' | 'card';
 export type CoverFontStyle = 'serif' | 'handwriting' | 'sans' | 'mono';
 export type FrameStyle = 'none' | 'code' | 'rule' | 'formula' | 'note' | 'double_border' | 'dashed';
 export type AiDrawingStyle = 'pencil' | 'pen' | 'diagram' | 'art';
-export type PlanTier = 'free' | 'premium';
+export type PlanTier = 'free' | 'premium' | 'teacher_pro';
+
+export interface PlanTierConfig {
+  id: PlanTier;
+  name: string;
+  subtitle: string;
+  badge: string;
+  monthlyPriceSom: number;
+  yearlyPriceSom: number;
+  aiChatQuotaDaily: number | null;
+  aiDrawQuotaDaily: number | null;
+  maxNotebooks: number | null;
+  maxSheetsPerBook: NotebookCapacity;
+  features: { label: string; included: boolean; detail?: string }[];
+}
+
+export const PLAN_TIERS: Record<PlanTier, PlanTierConfig> = {
+  free: {
+    id: 'free',
+    name: 'Free tarif',
+    subtitle: 'Boshlang‘ich maktab va kundalik qaydlar uchun',
+    badge: 'Bepul',
+    monthlyPriceSom: 0,
+    yearlyPriceSom: 0,
+    aiChatQuotaDaily: 5,
+    aiDrawQuotaDaily: 2,
+    maxNotebooks: 3,
+    maxSheetsPerBook: 24,
+    features: [
+      { label: 'Daftarlar soni', included: true, detail: '3 tagacha daftar (12 / 24 varaq)' },
+      { label: 'Qog‘oz turlari', included: true, detail: 'Chiziqli, Katak, Nuqtali, Oq' },
+      { label: 'AI Suhbat & She’riyat', included: true, detail: 'Kuniga 5 ta so‘rov' },
+      { label: 'AI Qalam chizma', included: true, detail: 'Kuniga 2 ta chizma' },
+      { label: 'PDF eksport & Anti-AI asosiy', included: true, detail: 'Standart aniqlik' },
+      { label: 'She’riyat devoni & Yaltiroq siyoh', included: false, detail: 'Premiumda' },
+      { label: 'Mening yozuvim (Alifbo studiyasi)', included: false, detail: 'Premiumda' },
+      { label: 'O‘qituvchi–O‘quvchi hamkorlik', included: false, detail: 'Ustoz Proda' },
+    ],
+  },
+  premium: {
+    id: 'premium',
+    name: 'Premium',
+    subtitle: 'O‘quvchi, talaba va ijodkorlar uchun to‘liq studiya',
+    badge: 'Ommabop',
+    monthlyPriceSom: 29000,
+    yearlyPriceSom: 249000,
+    aiChatQuotaDaily: 120,
+    aiDrawQuotaDaily: 40,
+    maxNotebooks: null,
+    maxSheetsPerBook: 96,
+    features: [
+      { label: 'Daftarlar soni', included: true, detail: 'Cheksiz (12 / 24 / 36 / 96 varaq)' },
+      { label: 'Titul muqova dizayneri', included: true, detail: 'Barcha nishon va shablonlar' },
+      { label: 'AI Suhbat & Kod / Formula', included: true, detail: 'Kuniga 120 ta tezkor so‘rov' },
+      { label: 'AI Qalam chizma & Sxema', included: true, detail: 'Kuniga 40 ta eskiz' },
+      { label: 'She’riyat devoni & Yaltiroq siyoh', included: true, detail: 'Oltin, kumush, safir siyohlar' },
+      { label: 'Mening yozuvim (Alifbo studiyasi)', included: true, detail: 'Shaxsiy qo‘lyozma shrifti' },
+      { label: 'To‘liq Anti-AI / Anti-Spam pechati', included: true, detail: 'HD 2-sahifali PDF eksport' },
+      { label: 'O‘qituvchi–O‘quvchi guruh nazorati', included: false, detail: 'Ustoz Proda' },
+    ],
+  },
+  teacher_pro: {
+    id: 'teacher_pro',
+    name: 'Ustoz Pro',
+    subtitle: 'O‘qituvchilar, repetitorlar va o‘quv markazlari uchun',
+    badge: 'Maksimal',
+    monthlyPriceSom: 59000,
+    yearlyPriceSom: 499000,
+    aiChatQuotaDaily: null,
+    aiDrawQuotaDaily: null,
+    maxNotebooks: null,
+    maxSheetsPerBook: 96,
+    features: [
+      { label: 'Daftarlar va arxiv', included: true, detail: 'Cheksiz + 96 varaq qattiq muqova' },
+      { label: 'AI Suhbat, Dars rejasi & Aruz', included: true, detail: 'Cheksiz ustuvor AI oqimi' },
+      { label: 'AI Qalam chizma & Geometriya', included: true, detail: 'Cheksiz chizmalar' },
+      { label: 'O‘qituvchi–O‘quvchi rejimi', included: true, detail: 'Tekshiruv va baho pechatlari' },
+      { label: 'Kengaytirilgan Anti-AI hisobot', included: true, detail: 'Nusxa va AI foizi nazorati' },
+      { label: 'Barcha yaltiroq siyoh va devonlar', included: true, detail: 'To‘liq to‘plam' },
+      { label: 'Ustozlar uchun tayyor ramka to‘plami', included: true, detail: 'Kod, formula, qoida bloklari' },
+      { label: 'Tezkor HD Screenshot-to-PDF', included: true, detail: 'To‘liq kitob eksporti' },
+    ],
+  },
+};
 
 export interface CoverData {
   theme: CoverTheme;

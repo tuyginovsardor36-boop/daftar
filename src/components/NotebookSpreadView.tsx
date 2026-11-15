@@ -45,6 +45,7 @@ interface NotebookSpreadViewProps {
   selectedTextId: string | null;
   zoom: number;
   isFlashing: boolean;
+  readOnly?: boolean;
   onActivatePage: (index: number) => void;
   onAddOppositePage?: () => void;
   onChangeGridRowSpan?: (span: GridRowSpan) => void;
@@ -87,6 +88,7 @@ export const NotebookSpreadView: React.FC<NotebookSpreadViewProps> = ({
   selectedTextId,
   zoom,
   isFlashing,
+  readOnly = false,
   onActivatePage,
   onAddOppositePage,
   onChangeGridRowSpan,
@@ -254,6 +256,7 @@ export const NotebookSpreadView: React.FC<NotebookSpreadViewProps> = ({
           selectedTextId={selectedTextId}
           zoom={zoom}
           isFlashing={isFlashing}
+          readOnly={readOnly}
           onActivateSheet={() => onActivatePage(leftIndex)}
           onChangeGridRowSpan={onChangeGridRowSpan}
           onSmartPasteText={
@@ -293,6 +296,7 @@ export const NotebookSpreadView: React.FC<NotebookSpreadViewProps> = ({
             selectedTextId={selectedTextId}
             zoom={zoom}
             isFlashing={isFlashing}
+            readOnly={readOnly}
             onActivateSheet={() => onActivatePage(rightIndex)}
             onChangeGridRowSpan={onChangeGridRowSpan}
             onSmartPasteText={
@@ -312,16 +316,18 @@ export const NotebookSpreadView: React.FC<NotebookSpreadViewProps> = ({
           />
         ) : (
           <div
-            onClick={() => onAddOppositePage?.()}
-            role="button"
-            tabIndex={0}
+            onClick={() => {
+              if (!readOnly) onAddOppositePage?.();
+            }}
+            role={readOnly ? undefined : 'button'}
+            tabIndex={readOnly ? undefined : 0}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (!readOnly && (e.key === 'Enter' || e.key === ' ')) {
                 e.preventDefault();
                 onAddOppositePage?.();
               }
             }}
-            className="relative group cursor-pointer overflow-hidden"
+            className={`relative group overflow-hidden ${readOnly ? '' : 'cursor-pointer'}`}
             style={{
               width: Math.round(PAGE_WIDTH * zoom),
               height: spreadH,
@@ -331,24 +337,28 @@ export const NotebookSpreadView: React.FC<NotebookSpreadViewProps> = ({
           >
             <canvas
               ref={emptyRightCanvasRef}
-              className="absolute inset-0 w-full h-full opacity-70 group-hover:opacity-95 transition-opacity pointer-events-none"
+              className={`absolute inset-0 w-full h-full pointer-events-none ${
+                readOnly ? 'opacity-90' : 'opacity-70 group-hover:opacity-95 transition-opacity'
+              }`}
             />
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-zinc-900/5 group-hover:bg-blue-600/5 transition-colors">
-              <div className="bg-white/95 border border-zinc-200 shadow-lg rounded-xl px-5 py-4 flex flex-col items-center gap-2 max-w-xs">
-                <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center">
-                  <FilePlus2 className="w-4.5 h-4.5" />
+            {!readOnly && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-zinc-900/5 group-hover:bg-blue-600/5 transition-colors">
+                <div className="bg-white/95 border border-zinc-200 shadow-lg rounded-xl px-5 py-4 flex flex-col items-center gap-2 max-w-xs">
+                  <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <FilePlus2 className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="text-sm font-semibold text-zinc-900">
+                    O‘ng tomon sahifasi mavjud emas
+                  </div>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    Daftar toq sahifada tugagan. O‘ng tomonni ham ochish uchun bosing.
+                  </p>
+                  <span className="mt-1 px-3 py-1.5 rounded-lg bg-blue-700 text-white text-xs font-semibold">
+                    + O‘ng sahifani qo‘shish
+                  </span>
                 </div>
-                <div className="text-sm font-semibold text-zinc-900">
-                  O‘ng tomon sahifasi mavjud emas
-                </div>
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Daftar toq sahifada tugagan. O‘ng tomonni ham ochish uchun bosing.
-                </p>
-                <span className="mt-1 px-3 py-1.5 rounded-lg bg-blue-700 text-white text-xs font-semibold">
-                  + O‘ng sahifani qo‘shish
-                </span>
               </div>
-            </div>
+            )}
           </div>
         )}
 

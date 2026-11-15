@@ -25,6 +25,7 @@ import {
   PAPER_TONE_COLORS,
   PaperStyle,
   PaperTone,
+  SheetSide,
   StickerImage,
   Stroke,
   TextBlock,
@@ -48,6 +49,7 @@ export interface RenderDocOptions {
   bindingStyle: BindingStyle;
   deskTheme: DeskTheme;
   capacity?: NotebookCapacity;
+  sheetSide?: SheetSide;
   customAlphabet?: CustomAlphabetMap;
   antiAiStamp?: AntiAiStampOptions;
 }
@@ -363,21 +365,39 @@ export function drawPaperBase(
     ctx.fillRect(gx, gy, 1.2, 1.2);
   }
 
-  // Spine crease shadow on the left side of the paper
-  const spineWidth = options.bindingStyle === 'spiral' ? 54 : options.bindingStyle === 'stitched' ? 42 : 18;
-  const spineGrad = ctx.createLinearGradient(0, 0, spineWidth, 0);
-  spineGrad.addColorStop(0, 'rgba(24, 24, 27, 0.11)');
-  spineGrad.addColorStop(0.35, 'rgba(24, 24, 27, 0.035)');
-  spineGrad.addColorStop(1, 'rgba(24, 24, 27, 0)');
-  ctx.fillStyle = spineGrad;
-  ctx.fillRect(0, 0, spineWidth, PAGE_HEIGHT);
+  const sheetSide: SheetSide = options.sheetSide ?? 'right';
 
-  // Subtle right-edge paper highlight/depth
-  const rightGrad = ctx.createLinearGradient(PAGE_WIDTH - 10, 0, PAGE_WIDTH, 0);
-  rightGrad.addColorStop(0, 'rgba(0,0,0,0)');
-  rightGrad.addColorStop(1, 'rgba(24,24,27,0.035)');
-  ctx.fillStyle = rightGrad;
-  ctx.fillRect(PAGE_WIDTH - 10, 0, 10, PAGE_HEIGHT);
+  // Spine crease shadow on the inner binding side of the paper
+  const spineWidth = options.bindingStyle === 'spiral' ? 54 : options.bindingStyle === 'stitched' ? 42 : 18;
+  if (sheetSide === 'left') {
+    const spineGrad = ctx.createLinearGradient(PAGE_WIDTH - spineWidth, 0, PAGE_WIDTH, 0);
+    spineGrad.addColorStop(0, 'rgba(24, 24, 27, 0)');
+    spineGrad.addColorStop(0.65, 'rgba(24, 24, 27, 0.035)');
+    spineGrad.addColorStop(1, 'rgba(24, 24, 27, 0.11)');
+    ctx.fillStyle = spineGrad;
+    ctx.fillRect(PAGE_WIDTH - spineWidth, 0, spineWidth, PAGE_HEIGHT);
+
+    // Subtle left outer-edge highlight/depth
+    const leftGrad = ctx.createLinearGradient(0, 0, 10, 0);
+    leftGrad.addColorStop(0, 'rgba(24,24,27,0.035)');
+    leftGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = leftGrad;
+    ctx.fillRect(0, 0, 10, PAGE_HEIGHT);
+  } else {
+    const spineGrad = ctx.createLinearGradient(0, 0, spineWidth, 0);
+    spineGrad.addColorStop(0, 'rgba(24, 24, 27, 0.11)');
+    spineGrad.addColorStop(0.35, 'rgba(24, 24, 27, 0.035)');
+    spineGrad.addColorStop(1, 'rgba(24, 24, 27, 0)');
+    ctx.fillStyle = spineGrad;
+    ctx.fillRect(0, 0, spineWidth, PAGE_HEIGHT);
+
+    // Subtle right-edge paper highlight/depth
+    const rightGrad = ctx.createLinearGradient(PAGE_WIDTH - 10, 0, PAGE_WIDTH, 0);
+    rightGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    rightGrad.addColorStop(1, 'rgba(24,24,27,0.035)');
+    ctx.fillStyle = rightGrad;
+    ctx.fillRect(PAGE_WIDTH - 10, 0, 10, PAGE_HEIGHT);
+  }
 
   // Paper patterns
   if (options.paperStyle === 'lined') {
@@ -385,25 +405,33 @@ export function drawPaperBase(
     ctx.lineWidth = 1;
     for (let y = HEADER_HEIGHT + LINE_SPACING; y < PAGE_HEIGHT - 44; y += LINE_SPACING) {
       ctx.beginPath();
-      ctx.moveTo(28, y + 0.5);
-      ctx.lineTo(PAGE_WIDTH - 24, y + 0.5);
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(PAGE_WIDTH, y + 0.5);
       ctx.stroke();
     }
 
     // Header double rule
     ctx.strokeStyle = palette.line;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 0.85;
     ctx.beginPath();
-    ctx.moveTo(28, HEADER_HEIGHT + 0.5);
-    ctx.lineTo(PAGE_WIDTH - 24, HEADER_HEIGHT + 0.5);
+    ctx.moveTo(0, HEADER_HEIGHT - 3.5);
+    ctx.lineTo(PAGE_WIDTH, HEADER_HEIGHT - 3.5);
     ctx.stroke();
 
-    // Vertical crimson margin line
-    ctx.strokeStyle = palette.margin;
-    ctx.lineWidth = 1.25;
+    ctx.lineWidth = 1.45;
     ctx.beginPath();
-    ctx.moveTo(MARGIN_X + 0.5, 16);
-    ctx.lineTo(MARGIN_X + 0.5, PAGE_HEIGHT - 16);
+    ctx.moveTo(0, HEADER_HEIGHT + 0.5);
+    ctx.lineTo(PAGE_WIDTH, HEADER_HEIGHT + 0.5);
+    ctx.stroke();
+
+    // Vertical crimson margin line ("Qizil hoshiya / polya") on the outer edge (top-to-bottom)
+    const marginLineX =
+      sheetSide === 'left' ? MARGIN_X + 0.5 : PAGE_WIDTH - MARGIN_X - 0.5;
+    ctx.strokeStyle = palette.margin;
+    ctx.lineWidth = 1.35;
+    ctx.beginPath();
+    ctx.moveTo(marginLineX, 0);
+    ctx.lineTo(marginLineX, PAGE_HEIGHT);
     ctx.stroke();
   } else if (options.paperStyle === 'grid') {
     const step = GRID_SIZE;
@@ -506,6 +534,10 @@ export function drawPaperBase(
     }
   }
 
+  const isLinedRightMargin = options.paperStyle === 'lined' && sheetSide === 'right';
+  const titleX = isLinedRightMargin ? 56 : MARGIN_X + 12;
+  const rightMetaEdge = isLinedRightMargin ? PAGE_WIDTH - MARGIN_X - 12 : PAGE_WIDTH - 32;
+
   // Page header metadata (clean editorial typography)
   if (!skipHeaderText) {
     ctx.fillStyle = 'rgba(24, 24, 27, 0.56)';
@@ -514,14 +546,14 @@ export function drawPaperBase(
     if (page.title) {
       ctx.fillStyle = 'rgba(24, 24, 27, 0.82)';
       ctx.font = "600 16px 'Lora', Georgia, serif";
-      ctx.fillText(page.title, MARGIN_X + 14, HEADER_HEIGHT - 16);
+      ctx.fillText(page.title, titleX, HEADER_HEIGHT - 16);
     }
 
     if (page.dateLabel) {
       ctx.fillStyle = 'rgba(24, 24, 27, 0.52)';
       ctx.font = "500 12px 'JetBrains Mono', monospace";
       const dateWidth = ctx.measureText(page.dateLabel).width;
-      ctx.fillText(page.dateLabel, PAGE_WIDTH - 32 - dateWidth, HEADER_HEIGHT - 16);
+      ctx.fillText(page.dateLabel, rightMetaEdge - dateWidth, HEADER_HEIGHT - 16);
     }
   }
 
@@ -530,7 +562,7 @@ export function drawPaperBase(
   ctx.font = "500 11px 'JetBrains Mono', monospace";
   const pageNumLabel = `${String(pageIndex + 1).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`;
   const numWidth = ctx.measureText(pageNumLabel).width;
-  ctx.fillText(pageNumLabel, PAGE_WIDTH - 32 - numWidth, PAGE_HEIGHT - 20);
+  ctx.fillText(pageNumLabel, rightMetaEdge - numWidth, PAGE_HEIGHT - 20);
 
   ctx.restore();
 }
@@ -1850,20 +1882,34 @@ export async function captureSpreadScreenshot(
   ctx.translate(padX, padY);
 
   // Left Page
-  await renderPageContentIntoContext(ctx, leftPage, leftIndex, totalPages, docOptions, scale);
+  await renderPageContentIntoContext(
+    ctx,
+    leftPage,
+    leftIndex,
+    totalPages,
+    { ...docOptions, sheetSide: 'left' },
+    scale
+  );
 
   // Right Page (or blank matching sheet if odd count)
   ctx.save();
   ctx.translate(PAGE_WIDTH, 0);
   if (rightPage) {
-    await renderPageContentIntoContext(ctx, rightPage, rightIndex, totalPages, docOptions, scale);
+    await renderPageContentIntoContext(
+      ctx,
+      rightPage,
+      rightIndex,
+      totalPages,
+      { ...docOptions, sheetSide: 'right' },
+      scale
+    );
   } else {
     drawPaperBase(
       ctx,
       { id: 'blank_end', title: '', dateLabel: '', strokes: [], textBlocks: [], images: [] },
       rightIndex,
       totalPages,
-      docOptions,
+      { ...docOptions, sheetSide: 'right' },
       true
     );
   }

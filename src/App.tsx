@@ -1,15 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  BookOpen,
   Camera,
   ChevronLeft,
   ChevronRight,
+  Eye,
   FolderOpen,
   PanelRight,
+  PenLine,
   ShieldCheck,
   Stamp,
   Trash2,
   Undo2,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { AlphabetStudioModal } from './components/AlphabetStudioModal';
 import { AiAssistantDrawer, AiNotebookActionPayload } from './components/AiAssistantDrawer';
@@ -213,6 +218,7 @@ export default function App() {
     return 0.85;
   });
   const [showPagesDrawer, setShowPagesDrawer] = useState<boolean>(true);
+  const [isViewMode, setIsViewMode] = useState<boolean>(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
   const [isFlashing, setIsFlashing] = useState<boolean>(false);
   const [isStreamingToPage, setIsStreamingToPage] = useState<boolean>(false);
@@ -228,6 +234,18 @@ export default function App() {
 
   const safeIndex = Math.min(activePageIndex, Math.max(0, doc.pages.length - 1));
   const currentPage = doc.pages[safeIndex];
+
+  const handleToggleViewMode = useCallback((nextViewOnly: boolean) => {
+    setIsViewMode(nextViewOnly);
+    if (nextViewOnly) {
+      setSelectedTextId(null);
+      setAiDrawTarget(null);
+      setIsKeyboardOpen(false);
+      setIsPoetryAiOpen(false);
+      setPasteStampPrompt(null);
+      setPastedCodeTargets(null);
+    }
+  }, []);
 
   // Persist library & active notebook ID & custom alphabet to localStorage
   useEffect(() => {
@@ -326,14 +344,14 @@ export default function App() {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      if (!isViewMode && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) {
           handleRedo();
         } else {
           handleUndo();
         }
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      } else if (!isViewMode && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         handleRedo();
       } else if (
@@ -377,6 +395,7 @@ export default function App() {
     handleUndo,
     handleRedo,
     aiDrawTarget,
+    isViewMode,
     isPdfModalOpen,
     isAlphabetModalOpen,
     isNotebooksModalOpen,
@@ -953,7 +972,7 @@ export default function App() {
   // Global Ctrl+V / Cmd+V paste anywhere on the notebook page
   useEffect(() => {
     const onGlobalPaste = (e: ClipboardEvent) => {
-      if (isPdfModalOpen || isAlphabetModalOpen || isNotebooksModalOpen || isViewingCover) return;
+      if (isViewMode || isPdfModalOpen || isAlphabetModalOpen || isNotebooksModalOpen || isViewingCover) return;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
 
@@ -1020,6 +1039,7 @@ export default function App() {
     window.addEventListener('paste', onGlobalPaste);
     return () => window.removeEventListener('paste', onGlobalPaste);
   }, [
+    isViewMode,
     isPdfModalOpen,
     isAlphabetModalOpen,
     isNotebooksModalOpen,
@@ -1694,48 +1714,66 @@ export default function App() {
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F9F8F5] text-zinc-900">
       {/* Top Bar: Clean 3-Zone Header */}
-      <header className="h-14 px-5 bg-[#F9F8F5] border-b border-zinc-900/10 flex items-center justify-between gap-8 shrink-0">
-        {/* Zone 1: Brand Wordmark */}
-        <span className="text-base font-bold tracking-tight text-zinc-900 whitespace-nowrap shrink-0">
-          Daftar Canvas
-        </span>
+      <header className="h-14 px-4 sm:px-5 bg-[#F9F8F5] border-b border-zinc-900/10 flex items-center justify-between gap-4 sm:gap-6 shrink-0">
+        {/* Zone 1: Brand Wordmark & Teacher-Student View Badge */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <span className="text-base font-bold tracking-tight text-zinc-900 whitespace-nowrap">
+            Daftar Canvas
+          </span>
+          {isViewMode && (
+            <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-900 text-[11px] font-semibold border border-emerald-300/60">
+              <Eye className="w-3 h-3" />
+              <span>O‘qituvchi–O‘quvchi</span>
+            </span>
+          )}
+        </div>
 
-        {/* Zone 2: Notebook Library Button, Editable Title & Subject Finder Tag (not exported to PDF) */}
-        <div className="flex items-center gap-4 min-w-0">
+        {/* Zone 2: Notebook Library Button, Title & Page Counter */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             type="button"
             onClick={() => setIsNotebooksModalOpen(true)}
-            title="Daftarlar ro‘yxati va yangi daftar yaratish"
+            title="Daftarlar ro‘yxati"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-200/70 hover:bg-zinc-200 text-xs font-medium text-zinc-800 whitespace-nowrap shrink-0 transition-colors cursor-pointer"
           >
             <FolderOpen className="w-3.5 h-3.5 text-blue-700" />
-            <span>Daftarlar ({notebooks.length})</span>
+            <span className="hidden sm:inline">Daftarlar ({notebooks.length})</span>
           </button>
 
           <div className="flex items-center gap-2 min-w-0">
             <input
               type="text"
               value={doc.title}
-              onChange={(e) => setDoc((prev) => ({ ...prev, title: e.target.value }))}
+              readOnly={isViewMode}
+              onChange={(e) => {
+                if (!isViewMode) setDoc((prev) => ({ ...prev, title: e.target.value }));
+              }}
               aria-label="Daftar nomi"
               placeholder="Daftar nomi..."
-              className="text-sm font-medium text-zinc-800 bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-blue-600 outline-none px-1 py-0.5 w-32 sm:w-44 truncate transition-colors"
+              className={`text-sm font-medium text-zinc-800 bg-transparent border-b border-transparent outline-none px-1 py-0.5 w-28 sm:w-40 truncate transition-colors ${
+                isViewMode ? 'cursor-default' : 'hover:border-zinc-300 focus:border-blue-600'
+              }`}
             />
-            <span className="hidden lg:inline text-zinc-300" aria-hidden="true">
+            <span className="hidden xl:inline text-zinc-300" aria-hidden="true">
               /
             </span>
             <input
               type="text"
               value={doc.subjectTag}
-              onChange={(e) => setDoc((prev) => ({ ...prev, subjectTag: e.target.value }))}
+              readOnly={isViewMode}
+              onChange={(e) => {
+                if (!isViewMode) setDoc((prev) => ({ ...prev, subjectTag: e.target.value }));
+              }}
               aria-label="Fan nomi (faqat topish uchun)"
               placeholder="Fan nomi..."
               title="Fan nomi — faqat daftarni topish uchun (PDF ga qo‘shilmaydi)"
-              className="hidden lg:inline-block text-xs font-medium text-blue-800 bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-blue-600 outline-none px-1 py-0.5 w-28 truncate transition-colors"
+              className={`hidden xl:inline-block text-xs font-medium text-blue-800 bg-transparent border-b border-transparent outline-none px-1 py-0.5 w-24 truncate transition-colors ${
+                isViewMode ? 'cursor-default' : 'hover:border-zinc-300 focus:border-blue-600'
+              }`}
             />
           </div>
 
-          <div className="hidden md:flex items-center gap-2 text-xs text-zinc-500 whitespace-nowrap shrink-0">
+          <div className="hidden lg:flex items-center gap-2 text-xs text-zinc-500 whitespace-nowrap shrink-0">
             <span className="font-code tabular-nums text-zinc-700 font-medium">
               {isViewingCover
                 ? 'Titul muqova'
@@ -1760,20 +1798,56 @@ export default function App() {
           </button>
         </div>
 
-        {/* Zone 3: 1 Primary CTA — Screenshot & PDF Export */}
-        <div className="flex items-center shrink-0">
+        {/* Zone 3: Studio Mode / View Mode Toggle Switch + Primary PDF Export CTA */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div
+            className="flex items-center gap-0.5 p-0.5 rounded-lg bg-zinc-200/80 border border-zinc-900/10"
+            role="group"
+            aria-label="Studio Mode va View Mode almashtirgich"
+            title="O‘qituvchi–O‘quvchi hamkorlik rejimi: View Mode (faqat ko‘rish) va Studio Mode (tahrirlash)"
+          >
+            <button
+              type="button"
+              onClick={() => handleToggleViewMode(false)}
+              aria-pressed={!isViewMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                !isViewMode
+                  ? 'bg-white text-zinc-900 shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              <PenLine className="w-3.5 h-3.5 text-blue-700" />
+              <span>Studio Mode</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleToggleViewMode(true)}
+              aria-pressed={isViewMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                isViewMode
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>View Mode</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={handleOpenScreenshotExport}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Camera className="w-3.5 h-3.5" />
-            <span>PDF ga eksport (Screenshot)</span>
+            <span className="hidden md:inline">PDF ga eksport (Screenshot)</span>
+            <span className="md:hidden">PDF</span>
           </button>
         </div>
       </header>
 
-      {/* Studio Writing & Customization Toolbar */}
+      {/* Studio Writing & Customization Toolbar (Hidden in Teacher-Student View Mode) */}
+      {!isViewMode && (
       <StudioToolbar
         activeTool={activeTool}
         activeColor={activeColor}
@@ -1858,6 +1932,7 @@ export default function App() {
         }}
         onOpenPlanModal={() => setIsPlanModalOpen(true)}
       />
+      )}
 
       {/* Main Workspace: Desk Canvas + Pages Drawer */}
       <div className="flex-1 flex overflow-hidden">
@@ -1889,6 +1964,7 @@ export default function App() {
                 activeWidth={activeWidth}
                 zoom={zoom}
                 isFlashing={isFlashing}
+                readOnly={isViewMode}
                 onUpdateCover={handleUpdateCover}
                 onAddCoverStroke={handleAddCoverStroke}
               />
@@ -1921,6 +1997,7 @@ export default function App() {
                     selectedTextId={selectedTextId}
                     zoom={zoom}
                     isFlashing={isFlashing}
+                    readOnly={isViewMode}
                     onActivatePage={(idx) => setActivePageIndex(idx)}
                     onAddOppositePage={handleAddOppositePage}
                     onChangeGridRowSpan={handleChangeGridRowSpan}
@@ -1958,6 +2035,7 @@ export default function App() {
                   selectedTextId={selectedTextId}
                   zoom={zoom}
                   isFlashing={isFlashing}
+                  readOnly={isViewMode}
                   onChangeGridRowSpan={handleChangeGridRowSpan}
                   onSmartPasteText={(blockId, text, s, e) =>
                     handleSmartPasteAt(safeIndex, blockId, text, s, e)
@@ -2106,7 +2184,7 @@ export default function App() {
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
 
-              {!isViewingCover && doc.pages.length > 1 && (
+              {!isViewMode && !isViewingCover && doc.pages.length > 1 && (
                 <button
                   type="button"
                   onClick={() => handleDeletePage(safeIndex)}
@@ -2117,31 +2195,81 @@ export default function App() {
                   <span className="hidden sm:inline">O‘chirish</span>
                 </button>
               )}
+
+              {isViewMode && (
+                <div className="flex items-center gap-1.5 ml-2 pl-3 border-l border-zinc-400/30">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChangeViewLayout(doc.viewLayout === 'single' ? 'spread' : 'single')
+                    }
+                    title="1 sahifa / 2 sahifa ko‘rinishini almashtirish"
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md font-medium transition-colors cursor-pointer ${
+                      doc.deskTheme === 'walnut'
+                        ? 'bg-white/10 text-stone-200 hover:bg-white/20'
+                        : 'bg-white/80 text-zinc-700 hover:bg-white shadow-sm'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>{doc.viewLayout === 'single' ? '1 sahifa' : '2 sahifa'}</span>
+                  </button>
+
+                  <div
+                    className={`hidden sm:flex items-center gap-0.5 px-1 py-0.5 rounded-md ${
+                      doc.deskTheme === 'walnut'
+                        ? 'bg-white/10 text-stone-200'
+                        : 'bg-white/80 text-zinc-700 shadow-sm'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setZoom((z) => Math.max(0.45, Number((z - 0.1).toFixed(2))))}
+                      title="Kichiklashtirish"
+                      className="p-1 rounded hover:bg-black/10 cursor-pointer"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-code text-[11px] w-10 text-center tabular-nums">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(2))))}
+                      title="Kattalashtirish"
+                      className="p-1 rounded hover:bg-black/10 cursor-pointer"
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
 
         {/* Universal AI Notebook Chat Assistant Drawer */}
-        <AiAssistantDrawer
-          isOpen={isPoetryAiOpen}
-          notebookTitle={doc.title}
-          subjectTag={doc.subjectTag}
-          paperStyle={doc.paperStyle}
-          activePageNumber={safeIndex + 1}
-          activePageTitle={currentPage?.title ?? ''}
-          hasCover={doc.hasCover}
-          currentPageTextPreview={(currentPage?.textBlocks ?? [])
-            .map((tb) => tb.content)
-            .filter(Boolean)
-            .join('\n')}
-          planTier={planTier}
-          aiRequestCount={aiRequestCount}
-          isStreamingToPage={isStreamingToPage}
-          onExecuteAction={handleExecuteAiChatAction}
-          onIncrementAiCount={() => setAiRequestCount((c) => c + 1)}
-          onOpenPlanModal={() => setIsPlanModalOpen(true)}
-          onClose={() => setIsPoetryAiOpen(false)}
-        />
+        {!isViewMode && (
+          <AiAssistantDrawer
+            isOpen={isPoetryAiOpen}
+            notebookTitle={doc.title}
+            subjectTag={doc.subjectTag}
+            paperStyle={doc.paperStyle}
+            activePageNumber={safeIndex + 1}
+            activePageTitle={currentPage?.title ?? ''}
+            hasCover={doc.hasCover}
+            currentPageTextPreview={(currentPage?.textBlocks ?? [])
+              .map((tb) => tb.content)
+              .filter(Boolean)
+              .join('\n')}
+            planTier={planTier}
+            aiRequestCount={aiRequestCount}
+            isStreamingToPage={isStreamingToPage}
+            onExecuteAction={handleExecuteAiChatAction}
+            onIncrementAiCount={() => setAiRequestCount((c) => c + 1)}
+            onOpenPlanModal={() => setIsPlanModalOpen(true)}
+            onClose={() => setIsPoetryAiOpen(false)}
+          />
+        )}
 
         {/* Collapsible Right Pages Drawer */}
         {showPagesDrawer && (
@@ -2154,6 +2282,7 @@ export default function App() {
             cover={doc.cover}
             capacity={doc.capacity}
             viewLayout={doc.viewLayout}
+            readOnly={isViewMode}
             onSelectCover={() => navigateToPage(0, true)}
             onToggleHasCover={handleToggleHasCover}
             onSelectPage={(idx) => navigateToPage(idx, false)}
@@ -2168,6 +2297,7 @@ export default function App() {
       </div>
 
       {/* On-Screen Interactive Keyboard */}
+      {!isViewMode && (
       <OnScreenKeyboard
         isOpen={isKeyboardOpen}
         activeFont={activeFont}
@@ -2179,6 +2309,7 @@ export default function App() {
         onEnter={handleKeyboardEnter}
         onClose={() => setIsKeyboardOpen(false)}
       />
+      )}
 
       {/* Alphabet Drawing Studio Modal */}
       <AlphabetStudioModal
@@ -2234,7 +2365,7 @@ export default function App() {
       />
 
       {/* Anti-AI Paste Verification & Seal Prompt */}
-      {pasteStampPrompt && (
+      {!isViewMode && pasteStampPrompt && (
         <div className="fixed bottom-5 right-5 z-40 max-w-sm bg-white border border-zinc-200 rounded-xl shadow-xl p-3.5 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-zinc-900">
@@ -2295,7 +2426,7 @@ export default function App() {
       )}
 
       {/* Quick Undo Banner after 1-by-1 Page Deletion */}
-      {deletedUndoBanner && (
+      {!isViewMode && deletedUndoBanner && (
         <div className="fixed bottom-5 left-5 z-40 flex items-center gap-3 px-3.5 py-2 rounded-lg bg-zinc-900 text-white text-xs shadow-lg">
           <span>{deletedUndoBanner}</span>
           {past.length > 0 && (
