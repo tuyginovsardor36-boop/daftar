@@ -1,8 +1,12 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.development.local' });
+dotenv.config();
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
+import { neon } from '@neondatabase/serverless';
+import type { RequestHandler } from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,7 +110,89 @@ function buildHeuristicAntiAiResult(text: string, isPasted: boolean) {
 
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '20mb' }));
+
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required to start the notebook API.');
+  }
+  const sql = neon(process.env.DATABASE_URL);
+
+  const requireUser: RequestHandler = async (req, res, next) => {
+    const authorization = req.get('authorization');
+    const sessionToken = authorization?.startsWith('Bearer ') ? authorization.slice(7) : '';
+    if (!sessionToken) {
+      res.status(401).json({ error: 'Kirish talab qilinadi.' });
+      return;
+    }
+
+    try {
+      const sessions = await sql`
+        SELECT "userId"
+        FROM neon_auth.session
+        WHERE token = ${sessionToken} AND "expiresAt" > now()
+        LIMIT 1
+      `;
+      if (typeof sessions[0]?.userId !== 'string') {
+        res.status(401).json({ error: 'Sessiya yaroqsiz yoki muddati tugagan.' });
+        return;
+      }
+      res.locals.userId = sessions[0].userId;
+      next();
+    } catch {
+      res.status(401).json({ error: 'Sessiya yaroqsiz yoki muddati tugagan.' });
+    }
+  };
+
+  app.get('/api/notebooks', requireUser, async (_req, res) => {
+    try {
+      const rows = await sql`
+        SELECT payload
+        FROM public.daftar_notebooks
+        WHERE user_id = ${res.locals.userId}::uuid
+        ORDER BY updated_at DESC
+      `;
+      res.json({ notebooks: rows.map((row) => row.payload) });
+    } catch {
+      res.status(500).json({ error: 'Daftarlarni yuklab bo‘lmadi.' });
+    }
+  });
+
+  app.put('/api/notebooks', requireUser, async (req, res) => {
+    const notebooks: unknown = req.body?.notebooks;
+    if (!Array.isArray(notebooks) || notebooks.length > 100 || notebooks.some((notebook) =>
+      !notebook || typeof notebook !== 'object' ||
+      typeof notebook.id !== 'string' || notebook.id.length < 1 || notebook.id.length > 128 ||
+      !Array.isArray(notebook.pages)
+    )) {
+      res.status(400).json({ error: 'Daftar ma’lumotlari noto‘g‘ri.' });
+      return;
+    }
+
+    const userId = res.locals.userId as string;
+    const ids = notebooks.map((notebook: { id: string }) => notebook.id);
+    try {
+      for (const notebook of notebooks as Array<{ id: string }>) {
+        await sql`
+          INSERT INTO public.daftar_notebooks (id, user_id, payload, updated_at)
+          VALUES (${notebook.id}, ${userId}::uuid, ${JSON.stringify(notebook)}::jsonb, now())
+          ON CONFLICT (user_id, id)
+          DO UPDATE SET payload = EXCLUDED.payload, updated_at = now()
+        `;
+      }
+
+      if (ids.length > 0) {
+        await sql`
+          DELETE FROM public.daftar_notebooks
+          WHERE user_id = ${userId}::uuid AND NOT (id = ANY(${ids}::text[]))
+        `;
+      } else {
+        await sql`DELETE FROM public.daftar_notebooks WHERE user_id = ${userId}::uuid`;
+      }
+      res.json({ saved: true });
+    } catch {
+      res.status(500).json({ error: 'Daftarlarni Neon bazasiga saqlab bo‘lmadi.' });
+    }
+  });
 
   // Plan / Subscription status endpoint (currently Free with full access; Premium ready)
   app.get('/api/plan', (_req, res) => {

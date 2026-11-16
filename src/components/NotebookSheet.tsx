@@ -148,6 +148,26 @@ const CustomTextCanvas: React.FC<{
   );
 };
 
+const insertEditorTab = (
+  event: React.KeyboardEvent<HTMLTextAreaElement>,
+  value: string,
+  onChangeValue: (nextValue: string) => void
+) => {
+  if (event.key !== 'Tab' || event.shiftKey) return;
+
+  event.preventDefault();
+  const textarea = event.currentTarget;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const indentation = '  ';
+  const nextValue = `${value.slice(0, start)}${indentation}${value.slice(end)}`;
+
+  onChangeValue(nextValue);
+  requestAnimationFrame(() => {
+    textarea.setSelectionRange(start + indentation.length, start + indentation.length);
+  });
+};
+
 const AutoSizedTextarea: React.FC<{
   value: string;
   width: number;
@@ -220,6 +240,9 @@ const AutoSizedTextarea: React.FC<{
       rows={1}
       onFocus={() => {
         if (interactive) onFocus();
+      }}
+      onKeyDown={(e) => {
+        if (interactive) insertEditorTab(e, value, onChangeValue);
       }}
       onPaste={(e) => {
         if (!interactive || !onPasteText) return;
@@ -817,7 +840,7 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
             readOnly ? 'pointer-events-none' : 'focus:bg-white/40'
           }`}
           style={{
-            right: 30,
+            right: paperStyle === 'lined' ? MARGIN_X + 12 : 30,
             top: HEADER_HEIGHT - 32,
             width: 140,
           }}
@@ -1273,6 +1296,13 @@ export const NotebookSheet: React.FC<NotebookSheetProps> = ({
                       if (!interactive) return;
                       onSelectTextId(block.id);
                       setEditingTextId(block.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (interactive) {
+                        insertEditorTab(e, block.content, (content) =>
+                          onUpdateTextBlock(block.id, { content })
+                        );
+                      }
                     }}
                     onBlur={() => {
                       setEditingTextId((prev) => (prev === block.id ? null : prev));
