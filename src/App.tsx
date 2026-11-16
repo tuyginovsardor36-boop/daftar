@@ -1,4 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import useSWR from 'swr';
+import { AuthScreen } from './components/AuthScreen';
+import { authClient, fetchNotebooks, saveNotebooks } from './neon';
 import {
   BookOpen,
   Camera,
@@ -6,6 +9,7 @@ import {
   ChevronRight,
   Eye,
   FolderOpen,
+  LogOut,
   PanelRight,
   PenLine,
   ShieldCheck,
@@ -160,7 +164,28 @@ function loadInitialLibrary(): { notebooks: NotebookDoc[]; activeId: string } {
 }
 
 export default function App() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f2eee6] text-sm text-zinc-600">
+        Daftar yuklanmoqda...
+      </main>
+    );
+  }
+
+  if (!session?.user) return <AuthScreen />;
+  return <NotebookWorkspace key={session.user.id} userId={session.user.id} />;
+}
+
+function NotebookWorkspace({ userId }: { userId: string }) {
   const [initialLib] = useState(loadInitialLibrary);
+  const { data: remoteNotebooks, error: loadError, isLoading, mutate } = useSWR(
+    ['notebooks', userId],
+    fetchNotebooks
+  );
+  const [isRemoteReady, setIsRemoteReady] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<NotebookDoc[]>(initialLib.notebooks);
   const [activeNotebookId, setActiveNotebookId] = useState<string>(initialLib.activeId);
   const [activePageIndex, setActivePageIndex] = useState(0);
@@ -247,15 +272,46 @@ export default function App() {
     }
   }, []);
 
-  // Persist library & active notebook ID & custom alphabet to localStorage
+  useEffect(() => {
+    if (isLoading || loadError || !remoteNotebooks || isRemoteReady) return;
+
+    if (remoteNotebooks.length > 0) {
+      const valid = remoteNotebooks
+        .map((notebook) => normalizeNotebookDoc(notebook))
+        .filter((notebook): notebook is NotebookDoc => Boolean(notebook));
+      if (valid.length > 0) {
+        setNotebooks(valid);
+        const savedActive = localStorage.getItem(ACTIVE_ID_STORAGE_KEY);
+        setActiveNotebookId(
+          savedActive && valid.some((notebook) => notebook.id === savedActive)
+            ? savedActive
+            : valid[0].id
+        );
+      }
+    }
+
+    setIsRemoteReady(true);
+  }, [isLoading, loadError, remoteNotebooks, isRemoteReady]);
+
+  useEffect(() => {
+    if (!isRemoteReady || loadError) return;
+    const timeout = window.setTimeout(() => {
+      saveNotebooks(notebooks)
+        .then(() => setSyncError(null))
+        .catch((error: unknown) => {
+          setSyncError(error instanceof Error ? error.message : 'Saqlashda xatolik yuz berdi.');
+        });
+    }, 700);
+    return () => window.clearTimeout(timeout);
+  }, [notebooks, isRemoteReady, loadError]);
+
   useEffect(() => {
     try {
-      localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(notebooks));
       localStorage.setItem(ACTIVE_ID_STORAGE_KEY, activeNotebookId);
     } catch {
       // Ignore storage quota errors silently
     }
-  }, [notebooks, activeNotebookId]);
+  }, [activeNotebookId]);
 
   useEffect(() => {
     try {
@@ -1711,6 +1767,26 @@ export default function App() {
         ? 'desk-slate'
         : 'desk-walnut';
 
+  if (isLoading || (!isRemoteReady && !loadError)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f2eee6] text-sm text-zinc-600">
+        Daftarlaringiz yuklanmoqda...
+      </main>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f2eee6] px-5 text-zinc-900">
+        <section className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-lg">
+          <h1 className="font-semibold">Neon bazasiga ulanib bo‘lmadi</h1>
+          <p className="mt-2 text-sm text-zinc-600">Daftarlaringiz o‘zgartirilmagan. Ulanishni tekshirib, qayta urinib ko‘ring.</p>
+          <button onClick={() => mutate()} className="mt-5 rounded-lg bg-emerald-900 px-4 py-2 text-sm font-semibold text-white">Qayta urinish</button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F9F8F5] text-zinc-900">
       {/* Top Bar: Clean 3-Zone Header */}
@@ -1842,6 +1918,15 @@ export default function App() {
             <Camera className="w-3.5 h-3.5" />
             <span className="hidden md:inline">PDF ga eksport (Screenshot)</span>
             <span className="md:hidden">PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void authClient.signOut()}
+            aria-label="Hisobdan chiqish"
+            title="Hisobdan chiqish"
+            className="flex size-9 items-center justify-center rounded-lg border border-zinc-900/10 bg-white text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -2457,6 +2542,12 @@ export default function App() {
           >
             Tez yakunlash
           </button>
+        </div>
+      )}
+
+      {syncError && (
+        <div role="status" className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 rounded-lg bg-red-800 px-4 py-2 text-xs font-medium text-white shadow-lg">
+          {syncError}
         </div>
       )}
 
