@@ -424,15 +424,15 @@ export function drawPaperBase(
     ctx.lineTo(PAGE_WIDTH, HEADER_HEIGHT + 0.5);
     ctx.stroke();
 
-    // Vertical crimson margin line ("Qizil hoshiya / polya") on the outer edge (top-to-bottom)
-    const marginLineX =
-      sheetSide === 'left' ? MARGIN_X + 0.5 : PAGE_WIDTH - MARGIN_X - 0.5;
+    // Paired crimson margins keep writing clear of both page edges.
     ctx.strokeStyle = palette.margin;
     ctx.lineWidth = 1.35;
-    ctx.beginPath();
-    ctx.moveTo(marginLineX, 0);
-    ctx.lineTo(marginLineX, PAGE_HEIGHT);
-    ctx.stroke();
+    for (const marginLineX of [MARGIN_X + 0.5, PAGE_WIDTH - MARGIN_X - 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(marginLineX, 0);
+      ctx.lineTo(marginLineX, PAGE_HEIGHT);
+      ctx.stroke();
+    }
   } else if (options.paperStyle === 'grid') {
     const step = GRID_SIZE;
     ctx.strokeStyle = palette.line;
@@ -534,9 +534,9 @@ export function drawPaperBase(
     }
   }
 
-  const isLinedRightMargin = options.paperStyle === 'lined' && sheetSide === 'right';
-  const titleX = isLinedRightMargin ? 56 : MARGIN_X + 12;
-  const rightMetaEdge = isLinedRightMargin ? PAGE_WIDTH - MARGIN_X - 12 : PAGE_WIDTH - 32;
+  const titleX = MARGIN_X + 12;
+  const rightMetaEdge =
+    options.paperStyle === 'lined' ? PAGE_WIDTH - MARGIN_X - 12 : PAGE_WIDTH - 32;
 
   // Page header metadata (clean editorial typography)
   if (!skipHeaderText) {
